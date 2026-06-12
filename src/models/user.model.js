@@ -1,14 +1,20 @@
 import mongoose from "mongoose";
 
+/*
+El "Schema" es como el plano de un edificio. Define exactamente qué campos
+puede tener un usuario, de qué tipo son y si son obligatorios o no.
+Mongoose usará esto para evitar que guardemos basura en la base de datos.
+*/
+
 const userSchema = new mongoose.Schema({
     nombre: {
         type: String,
-        required: true,
+        required: true,// Si alguien intenta crear un usuario sin nombre, Mongoose dará error
     },
     email: {
         type: String,
         required: true,
-        unique: true, 
+        unique: true, // Asegura que no haya dos usuarios con el mismo correo
     },
     password: {
         type: String,
@@ -16,23 +22,31 @@ const userSchema = new mongoose.Schema({
     },
     email_verificado: {
         type: Boolean,
-        default: false, 
+        default: false, // Por defecto al registrarse, el correo no está verificado
         required: true,
     },
     fecha_creacion: {
         type: Date,
         required: true,
-        default: Date.now 
+        default: Date.now // Si no pasamos fecha, MongoDB tomará el instante actual por defecto
     },
     activo: {
         type: Boolean,
         required: true,
-        default: true 
+        default: true // Útil para "borrado lógico" (desactivar al usuario sin borrar sus datos)
     }
-})
+}
+)
+
+/*
+Extraer el nombre del modelo a una constante es una excelente práctica.
+Evita errores de tipeo ('User' vs 'user') cuando necesitemos hacer relaciones con otros modelos (como el Workspace).
+*/
 
 export const USER_COLLECTION_NAME = 'User'
 
+// Creamos el modelo usando la constante y el esquema
 const User = mongoose.model(USER_COLLECTION_NAME, userSchema)
 
+// Lo exportamos por defecto para usarlo en el Repositorio
 export default User

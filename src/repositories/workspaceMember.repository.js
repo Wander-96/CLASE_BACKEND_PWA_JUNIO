@@ -2,7 +2,7 @@ import WorkspaceMember from "../models/workspaceMembers.model.js"
 
 class WorkspaceMemberRepository {
 
-    /* --- 1. OBTENER MEMBRESÍA POR USUARIO Y WORKSPACE --- */
+    // Busca una membresía específica cruzando el ID del usuario y el ID del workspace
     async getByUserAndWorkspaceId(user_id, workspace_id) {
         const membership = await WorkspaceMember.findOne({
             fk_user_id: user_id,
@@ -11,7 +11,6 @@ class WorkspaceMemberRepository {
         return membership
     }
 
-    /* --- 2. CREAR MEMBRESÍA --- */
     async create(user_id, workspace_id, rol) {
         return await WorkspaceMember.create({
             fk_workspace_id: workspace_id,
@@ -20,37 +19,40 @@ class WorkspaceMemberRepository {
         })
     }
 
-    /* --- 3. OBTENER POR ID --- */
     async getById(member_id) {
         return await WorkspaceMember.findById(member_id)
     }
 
-    /* --- 4. ACTUALIZAR POR ID --- */
     async updateById(member_id, update_data) {
         return await WorkspaceMember.findByIdAndUpdate(member_id, update_data)
     }
 
-    /* --- 5. ELIMINAR POR ID --- */
     async deleteById(member_id) {
         return await WorkspaceMember.findByIdAndDelete(member_id)
     }
 
-    /* --- 6. OBTENER MIEMBROS DE UN WORKSPACE (POPULATED) --- */
+    /* --- 2. TRAER MIEMBROS DE UN WORKSPACE --- */
     async getByWorkspaceId(workspace_id) {
         const result = await WorkspaceMember
             .find({ fk_workspace_id: workspace_id })
-            .populate('fk_user_id', 'nombre email') 
+            // Aquí rellenamos los datos del usuario (corregido a fk_user_id)
+            .populate('fk_user_id', 'nombre email') //POPULATE:
+        // En lugar de devolvernos solo el ID del usuario('fk_user_id'), le decimos 
+        // a Mongoose: "Ve a la colección de Usuarios, busca este ID y tráeme 
+        // directamente su 'nombre' y 'email'"
 
+        // Usamos la clase ayudante para limpiar cada resultado de la lista
         const members_mapped = result.map(
             (member) => new MemberWorkspaceWithUserInfo(member)
         )
         return members_mapped
     }
 
-    /* --- 7. OBTENER WORKSPACES DE UN USUARIO (POPULATED) --- */
+    /* --- 3. TRAER WORKSPACES DE UN USUARIO --- */
     async getByUserId(user_id) {
         const memberships = await WorkspaceMember
             .find({ fk_user_id: user_id })
+            // Aquí rellenamos los datos del Workspace
             .populate({
                 path: 'fk_workspace_id',
                 select: 'nombre descripcion estado',
@@ -58,11 +60,13 @@ class WorkspaceMemberRepository {
             });
 
         return memberships
+            // Filtramos los nulos (por si el workspace fue borrado)
             .filter(membership => membership.fk_workspace_id)
+            // Transformamos (limpiamos) la data con una Arrow Function
             .map(membership => ({
                 member_id: membership._id,
                 member_rol: membership.rol,
-                member_fecha_union: membership.fecha_creacion,
+                member_fecha_union: membership.fecha_creacion, // Corregido de fecha.creacion a fecha_creacion
                 workspace_id: membership.fk_workspace_id._id,
                 workspace_nombre: membership.fk_workspace_id.nombre,
                 workspace_descripcion: membership.fk_workspace_id.descripcion
@@ -73,7 +77,8 @@ class WorkspaceMemberRepository {
 const workspaceMemberRepository = new WorkspaceMemberRepository()
 export default workspaceMemberRepository
 
-/* --- CLASE DTO: MIEMBRO CON USUARIO --- */
+
+/* CLASE AYUDANTE (Helper) */
 class MemberWorkspaceWithUserInfo {
     constructor(raw_member) {
         this.member_id = raw_member._id
@@ -81,6 +86,7 @@ class MemberWorkspaceWithUserInfo {
         this.member_rol = raw_member.rol
         this.member_fecha_creacion = raw_member.fecha_creacion
 
+        // Gracias al populate, podemos acceder a las propiedades del usuario
         this.user_id = raw_member.fk_user_id._id
         this.user_nombre = raw_member.fk_user_id.nombre
         this.user_email = raw_member.fk_user_id.email

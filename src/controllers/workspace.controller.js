@@ -7,21 +7,27 @@ import workspaceMemberRepository from "../repositories/workspaceMember.repositor
 
 class WorkspaceController {
 
-    /* --- 1. CREAR UN ESPACIO DE TRABAJO --- */
+    //1. CREAR UN ESPACIO DE TRABAJO
+
     async create(request, response) {
         try {
             const { nombre, descripcion } = request.body;
+
+            //MIDDLEWARE: como el midd dejo pasar al usuario, dejo su ID en la request
             const user_id = request.user.id;
 
+            //Validacion de negocio
             if (!nombre || nombre.trim() === '') {
                 throw new ServerError("El nombre del espacio de trabajo es obligatorio", 400);
             }
 
+            //1. Le pedimos al repositorio crear el espacio
             const newWorkspace = await workspaceRepository.create(
                 nombre,
                 descripcion || ""
             );
 
+            //2. Le pedimos al repositorio de membresias que nos de la llave como dueños
             await workspaceMemberRepository.create(
                 user_id,
                 newWorkspace._id,
@@ -44,10 +50,13 @@ class WorkspaceController {
             }
         }
     }
-    /* --- 2. OBTENER ESPACIOS DE TRABAJO DEL USUARIO --- */
+    //2. OBTENER MIS ESPACIOS DE TRABAJO
     async getAllByUser(request, response) {
         try {
             const user_id = request.user.id;
+
+            // Le pedimos al Repositorio que busque todas mis membresías
+            // Gracias al '.populate()',esto no solo trae la membresía, sino todos los datos del Workspace
             const workspaces = await workspaceMemberRepository.getByUserId(user_id);
 
             return response.status(200).json({
@@ -65,11 +74,13 @@ class WorkspaceController {
         }
     }
 
-    /* --- 3. ELIMINAR ESPACIO DE TRABAJO --- */
+    //3. ELIMINAR ESPACIO DE TRAJO (ADMIN)
     async deleteById(request, response) {
         try {
-            const workspace_id = request.params.workspace_id;
-            const deleted_workspace = await workspaceRepository.softDeleteById(workspace_id);
+            const workspace_id = request.params.workspace_id
+
+            //soft delete (solo oculta)
+            const deleted_workspace = await workspaceRepository.softDeleteById(workspace_id)
 
             return response.status(200).json({
                 message: "Espacio de trabajo eliminado correctamente",
@@ -98,13 +109,14 @@ class WorkspaceController {
         }
     }
 
-    /* --- 4. ACTUALIZAR ESPACIO DE TRABAJO --- */
+    // ACTUALIZAR ESPACIO DE TRABAJO 
     async updateById(request, response) {
         try {
-            const workspace_id = request.params.workspace_id;
-            const { nombre, descripcion } = request.body;
+            const workspace_id = request.params.workspace_id
+            const { nombre, descripcion } = request.body
 
-            const updated_info = {};
+            //Objeto vacio donde guardamos solo lo que el usuario envio
+            const updated_info = {}
 
             if (!nombre && !descripcion) {
                 throw new ServerError("Debes enviar al menos un campo para actualizar", 400)
@@ -119,8 +131,9 @@ class WorkspaceController {
             if (descripcion) {
                 updated_info.descripcion = descripcion
             }
-            await workspaceRepository.updateById(workspace_id, updated_info);
-            const workspace_after_update = await workspaceRepository.getById(workspace_id);
+            //Pasamos el objeto solo con los campos que se actualizaron
+            await workspaceRepository.updateById(workspace_id, updated_info)
+            const workspace_after_update = await workspaceRepository.getById(workspace_id)
 
             return response.status(200).json({
                 message: "Espacio de trabajo actualizado exitosamente",

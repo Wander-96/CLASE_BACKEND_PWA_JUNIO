@@ -1,17 +1,17 @@
+// Importamos el Modelo, ya que el Repositorio ES el único autorizado a usarlo
 import User from "../models/user.model.js";
 
+
 class UserRepository {
-    /* --- 1. OBTENER TODOS LOS USUARIOS ACTIVOS --- */
+    // Busca todos los usuarios, pero fíjate: ¡solo los que estén activos!
     async getAll() {
         return await User.find({ activo: true })
     }
-
-    /* --- 2. OBTENER USUARIO POR ID --- */
+    // Encuentra un usuario específico por su ID único
     async getById(user_id) {
         return await User.findById(user_id)
     }
-
-    /* --- 3. CREAR USUARIO --- */
+    // Crea un nuevo registro en la base de datos
     async create(nombre, email, password) {
         return await User.create({
             nombre,
@@ -20,21 +20,34 @@ class UserRepository {
         })
     }
 
-    /* --- 4. OBTENER USUARIO POR EMAIL --- */
     async getByEmail(email) {
-        return await User.findOne({ email: email, activo: true })
+        // Buscar en la DB un usuario cuyo email sea el indicado y que esté activo  
+        const user_found = await User.findOne({ email: email, activo: true })
+        return user_found
     }
 
-    /* --- 5. ELIMINAR USUARIO (SOFT DELETE) --- */
     async deleteById(user_id) {
+        /* 
+       SOFT DELETE (Borrado lógico): 
+       En sistemas reales, rara vez borramos registros. Simplemente los ocultamos.
+       */
         await User.findByIdAndUpdate(user_id, { activo: false })
+
+        /* HARD DELETE (Borrado físico): Elimina el registro por completo 
+
+        await User.findByIdAndDelete(user_id)
+        */
     }
 
-    /* --- 6. ACTUALIZAR USUARIO --- */
     async updateById(user_id, update_data) {
         await User.findByIdAndUpdate(user_id, update_data)
     }
+
 }
+// OJO AQUÍ: Aplicamos el "Patrón Singleton". 
+// En lugar de exportar la Clase, exportamos UNA SOLA instancia de la clase ya creada.
+// Así, toda la app usará exactamente el mismo objeto de repositorio, ahorrando memoria.
 
 const userRepository = new UserRepository()
+
 export default userRepository
